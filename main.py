@@ -1,7 +1,10 @@
 """
-Microservicio de Agente IA para el restaurante
-Usa Google Gemini Flash para conversaciones con clientes
-Con integración de MCP Tools para ejecutar acciones reales
+Microservicio Multi-Agente IA para el restaurante
+Sistema de agentes especializados con Gemini Flash
+- Agente de Reservas
+- Agente de Menús  
+- Agente de Información General
+- Orquestador para coordinar agentes
 """
 import os
 from fastapi import FastAPI, HTTPException
@@ -12,10 +15,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import httpx
 import json
-from mcp_tools import (
-    restaurante_tools, 
-    TOOLS_DEFINITIONS
-)
+from multi_agents import RestauranteMultiAgentSystem
 
 # Cargar variables de entorno
 load_dotenv()
@@ -29,9 +29,9 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # Crear la aplicación FastAPI
 app = FastAPI(
-    title="Agente IA Restaurante",
-    description="Microservicio de agente conversacional con Google Gemini",
-    version="1.0.0"
+    title="Sistema Multi-Agente IA Restaurante",
+    description="Microservicio multi-agente con Gemini Flash: Reservas, Menús e Info General",
+    version="2.0.0"
 )
 
 # Configurar CORS
@@ -47,57 +47,8 @@ app.add_middleware(
 # URL de la API Node.js
 NODE_API_URL = os.getenv("NODE_API_URL", "http://localhost:3000/api")
 
-# Configuración del modelo Gemini
-generation_config = {
-    "temperature": 0.7,
-    "top_p": 0.95,
-    "top_k": 40,
-    "max_output_tokens": 2048,
-}
-
-safety_settings = [
-    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-]
-
-# Prompt del sistema para el agente
-SYSTEM_PROMPT = """Eres un asistente virtual del restaurante, amable y servicial. Tu función es ayudar a los clientes con:
-
-1. **Información sobre el restaurante**: Horarios (9:00 AM - 11:00 PM), ubicación, ambiente.
-2. **Consultar menús**: Puedes usar la herramienta para ver menús disponibles y el más valorado.
-3. **Crear reservas**: Puedes crear reservas cuando el cliente te proporcione TODOS los datos.
-4. **Modificar reservas**: Puedes cambiar la fecha de una reserva si tienen el token.
-5. **Cancelar reservas**: Puedes cancelar reservas con el token.
-6. **Consultar reservas**: Puedes verificar el estado de una reserva con el token.
-
-**IMPORTANTE AL CREAR RESERVAS**:
-- DEBES obtener TODOS los datos antes de usar la herramienta: nombre completo, teléfono, email, fecha/hora, número de personas
-- La fecha debe ser en formato YYYY-MM-DDTHH:mm (ejemplo: 2025-11-25T19:30)
-- El horario debe estar entre 9:00 AM y 11:00 PM
-- Número de personas: entre 1 y 20
-- Pregunta de forma amigable si falta algún dato
-
-**FORMATO DE FECHAS**:
-- Cuando el usuario diga "mañana a las 8 de la noche", calcula la fecha correcta y conviértela a formato YYYY-MM-DDTHH:mm
-- Ejemplo: Si hoy es 23 de noviembre de 2025 y dicen "mañana a las 8 PM", usa "2025-11-24T20:00"
-- Las 8 PM = 20:00 en formato 24 horas
-
-**TOKENS**:
-- Cuando crees una reserva, el sistema devuelve un token único
-- Explica al cliente que debe guardar ese token para consultar, modificar o cancelar su reserva
-- El token también se envía por email
-
-**HERRAMIENTAS DISPONIBLES**:
-Tienes acceso a herramientas para ejecutar acciones reales. Úsalas cuando:
-- El cliente pregunte por el menú más valorado
-- El cliente quiera hacer una reserva (después de recopilar todos los datos)
-- El cliente quiera modificar o cancelar su reserva (necesita el token)
-- El cliente quiera consultar el estado de su reserva (necesita el token)
-
-Sé cordial, empático y profesional. Confirma siempre los datos antes de ejecutar acciones.
-"""
+# Inicializar el sistema multi-agente
+multi_agent_system = None
 
 # Modelos Pydantic
 class Message(BaseModel):
@@ -112,17 +63,22 @@ class ChatResponse(BaseModel):
     response: str
     session_id: Optional[str] = None
 
-# Almacenamiento temporal de sesiones (en producción usar Redis o base de datos)
-chat_sessions = {}
+@app.on_event("startup")
+async def startup_event():
+    """Inicializa el sistema multi-agente al arrancar"""
+    global multi_agent_system
+    multi_agent_system = RestauranteMultiAgentSystem()
+    print("✅ Sistema Multi-Agente inicializado")
 
 @app.get("/")
 async def root():
     """Endpoint raíz para verificar que el servicio está funcionando"""
     return {
-        "service": "Agente IA Restaurante",
+        "service": "Sistema Multi-Agente IA Restaurante",
         "status": "online",
-        "model": "gemini-flash",
-        "version": "1.0.0"
+        "architecture": "multi-agent",
+        "agents": ["reservas", "menus", "info", "orchestrator"],
+        "version": "2.0.0"
     }
 
 @app.get("/health")
@@ -133,85 +89,48 @@ async def health_check():
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
-    Endpoint principal para conversación con el agente con tools MCP
+    Endpoint principal para conversación con el sistema multi-agente
+    
+    El orquestador analiza la consulta y delega a los agentes especializados:
+    - reservas_agent: Maneja reservas (crear, modificar, cancelar, consultar)
+    - menus_agent: Información de menús y recomendaciones
+    - info_agent: Información general del restaurante
     
     Args:
         request: Objeto con el historial de mensajes y session_id opcional
     
     Returns:
-        Respuesta del agente con el texto generado
+        Respuesta coordinada del sistema multi-agente
     """
     try:
-        # Definir las funciones disponibles para Gemini
-        tools_for_gemini = []
-        for tool_def in TOOLS_DEFINITIONS:
-            func_declaration = {
-                "name": tool_def["name"],
-                "description": tool_def["description"]
-            }
-            if tool_def.get("parameters"):
-                func_declaration["parameters"] = tool_def["parameters"]
-            tools_for_gemini.append(func_declaration)
-        
-        # Inicializar el modelo con tools
-        model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
-            generation_config=generation_config,
-            safety_settings=safety_settings,
-            tools=[{"function_declarations": tools_for_gemini}]
-        )
-        
-        # Construir el historial de conversación
-        history = []
-        for msg in request.messages[:-1]:  # Todos menos el último
-            history.append({
-                "role": "user" if msg.role == "user" else "model",
-                "parts": [msg.content]
-            })
-        
-        # Iniciar chat con historial
-        chat = model.start_chat(history=history, enable_automatic_function_calling=True)
+        if not multi_agent_system:
+            raise HTTPException(status_code=503, detail="Sistema multi-agente no inicializado")
         
         # Obtener el último mensaje del usuario
         user_message = request.messages[-1].content if request.messages else ""
         
-        # Agregar contexto del sistema al primer mensaje
-        if len(history) == 0:
-            user_message = f"{SYSTEM_PROMPT}\n\nUsuario: {user_message}"
+        if not user_message:
+            raise HTTPException(status_code=400, detail="Mensaje vacío")
         
-        # Enviar mensaje
-        response = chat.send_message(user_message)
-        
-        # Manejar llamadas a funciones si las hay
-        while response.candidates[0].content.parts[0].function_call:
-            function_call = response.candidates[0].content.parts[0].function_call
-            function_name = function_call.name
-            function_args = dict(function_call.args)
-            
-            # Ejecutar la función correspondiente
-            if hasattr(restaurante_tools, function_name):
-                func = getattr(restaurante_tools, function_name)
-                function_response = await func(**function_args)
-            else:
-                function_response = {"error": f"Función {function_name} no encontrada"}
-            
-            # Enviar resultado de la función al modelo
-            response = chat.send_message(
-                genai.protos.Content(
-                    parts=[genai.protos.Part(
-                        function_response=genai.protos.FunctionResponse(
-                            name=function_name,
-                            response={"result": function_response}
-                        )
-                    )]
-                )
-            )
-        
-        return ChatResponse(
-            response=response.text,
+        # Procesar con el sistema multi-agente
+        result = await multi_agent_system.process_message(
+            user_message=user_message,
             session_id=request.session_id
         )
         
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=500,
+                detail=result.get("error", "Error al procesar mensaje")
+            )
+        
+        return ChatResponse(
+            response=result.get("response", ""),
+            session_id=result.get("session_id")
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         error_detail = f"Error al procesar el chat: {str(e)}\n{traceback.format_exc()}"
@@ -220,12 +139,24 @@ async def chat(request: ChatRequest):
 @app.post("/chat/reset")
 async def reset_chat(session_id: Optional[str] = None):
     """
-    Reiniciar una sesión de chat
+    Reiniciar una sesión de chat (reinicia todos los agentes)
     """
-    if session_id and session_id in chat_sessions:
-        del chat_sessions[session_id]
+    if not multi_agent_system:
+        raise HTTPException(status_code=503, detail="Sistema multi-agente no inicializado")
     
-    return {"message": "Sesión reiniciada correctamente"}
+    multi_agent_system.reset_session(session_id)
+    
+    return {"message": "Sesión reiniciada correctamente", "session_id": session_id}
+
+@app.get("/agents/status")
+async def agents_status():
+    """
+    Obtiene el estado de todos los agentes del sistema
+    """
+    if not multi_agent_system:
+        raise HTTPException(status_code=503, detail="Sistema multi-agente no inicializado")
+    
+    return multi_agent_system.get_system_status()
 
 @app.get("/menus")
 async def get_menus():
@@ -246,7 +177,16 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
     
-    print(f"🤖 Iniciando Agente IA en {host}:{port}")
-    print(f"📡 Conectado a Node API: {NODE_API_URL}")
+    print("=" * 60)
+    print("🚀 SISTEMA MULTI-AGENTE IA - RESTAURANTE")
+    print("=" * 60)
+    print(f"🤖 Iniciando en {host}:{port}")
+    print(f"📡 Node API: {NODE_API_URL}")
+    print("\n🎯 Agentes disponibles:")
+    print("   - Orquestador: Coordina y delega tareas")
+    print("   - Reservas Agent: Gestión de reservas")
+    print("   - Menús Agent: Información de menús")
+    print("   - Info Agent: Información general")
+    print("=" * 60)
     
     uvicorn.run(app, host=host, port=port)
