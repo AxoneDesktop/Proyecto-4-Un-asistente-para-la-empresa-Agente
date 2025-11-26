@@ -30,6 +30,9 @@ SAFETY_SETTINGS = [
 
 RESERVAS_AGENT_PROMPT = """Eres el **Agente de Reservas** del restaurante, especializado en:
 
+**FECHA Y HORA ACTUAL DEL SISTEMA**: {current_datetime}
+**IMPORTANTE**: Usa esta fecha como referencia para interpretar fechas relativas y ambiguas.
+
 **TU RESPONSABILIDAD**:
 1. Crear nuevas reservas
 2. Modificar fechas de reservas existentes
@@ -46,9 +49,20 @@ RESERVAS_AGENT_PROMPT = """Eres el **Agente de Reservas** del restaurante, espec
 - El horario del restaurante es 9:00 AM - 11:00 PM
 - Pregunta amablemente si falta algún dato
 
-**FORMATO DE FECHAS**:
-- Convierte lenguaje natural a formato YYYY-MM-DDTHH:mm
-- Ejemplo: "mañana a las 8 PM" → "2025-11-25T20:00"
+**INTERPRETACIÓN DE FECHAS**:
+- **FECHA ACTUAL**: {current_datetime}
+- Si dicen solo "el 24", asume el mes y año actual: {current_year}-{current_month}-24
+- Si dicen "mañana", calcula el día siguiente desde la fecha actual
+- Si dicen "este viernes", calcula el próximo viernes desde la fecha actual
+- Si dicen "el 24 de diciembre", usa el año actual: {current_year}-12-24
+- Siempre valida que la fecha esté en el futuro
+- Formato final: YYYY-MM-DDTHH:mm
+
+**EJEMPLOS DE CONVERSIÓN** (con fecha actual: {current_datetime}):
+- "mañana a las 8 PM" → Calcula: día siguiente + 20:00
+- "el 24 a las 2 PM" → {current_year}-{current_month}-24T14:00
+- "el 15 de diciembre a las 7 PM" → {current_year}-12-15T19:00
+- "este sábado a las 9 PM" → Calcula próximo sábado + 21:00
 
 **TOKENS**:
 - Al crear una reserva, el sistema devuelve un token único
@@ -93,12 +107,41 @@ INFO_AGENT_PROMPT = """Eres el **Agente de Información General** del restaurant
 3. Ambiente y servicios del restaurante
 4. Políticas generales
 5. Preguntas frecuentes
+6. **NAVEGACIÓN**: Ayudar al usuario a moverse por la aplicación
 
 **INFORMACIÓN DEL RESTAURANTE**:
 - Horario: 9:00 AM - 11:00 PM
 - Ambiente: Acogedor y familiar
 - Especialidad: Cocina variada con menús valorados por clientes
 - Servicios: Reservas en línea, consulta de menús, atención personalizada
+
+**⚠️ IMPORTANTE - DETECCIÓN DE NAVEGACIÓN**:
+Si el usuario pide ir a una sección, DEBES incluir el marcador EXACTO al final de tu respuesta:
+
+**EJEMPLOS OBLIGATORIOS**:
+Usuario: "Llévame a ver mis reservas" o "quiero consultar mi reserva"
+→ ¡Por supuesto! Te llevo a la sección de consulta de reservas. [NAVEGAR:consultar_reserva]
+
+Usuario: "Quiero hacer una reserva" o "ir a reservas" o "hacer reserva"
+→ Perfecto, te redirijo para que hagas tu reserva. [NAVEGAR:reserva]
+
+Usuario: "Quiero ver los menús" o "ir a menús" o "ver la carta" o "menú"
+→ Te muestro nuestros menús disponibles. [NAVEGAR:menu]
+
+Usuario: "Quiero dejar una valoración" o "ir a valoraciones" o "valorar"
+→ Te llevo a la sección de valoraciones. [NAVEGAR:valorar]
+
+Usuario: "Volver al inicio" o "ir al home" o "página principal"
+→ Te llevo de vuelta al inicio. [NAVEGAR:home]
+
+**MARCADORES DISPONIBLES (USA ESTOS EXACTOS)**:
+- [NAVEGAR:consultar_reserva] - Para consultar reserva existente
+- [NAVEGAR:reserva] - Para crear nueva reserva
+- [NAVEGAR:menu] - Para ver menús disponibles
+- [NAVEGAR:valorar] - Para dejar valoración
+- [NAVEGAR:home] - Para volver al inicio
+
+**REGLA CRÍTICA**: Si detectas palabras como "llévame", "ir a", "quiero ver", "navegar a", "página de" → SIEMPRE incluye el marcador [NAVEGAR:xxx] correspondiente.
 
 **ESTILO**:
 - Amable y acogedor
@@ -116,12 +159,13 @@ Analizar cada consulta del usuario y determinar qué agente(s) debe(n) responder
 **AGENTES DISPONIBLES**:
 1. **reservas_agent**: Maneja todo lo relacionado con reservas (crear, modificar, cancelar, consultar)
 2. **menus_agent**: Información sobre menús, platos, precios, recomendaciones
-3. **info_agent**: Información general (horarios, ubicación, ambiente, políticas)
+3. **info_agent**: Información general (horarios, ubicación, ambiente, políticas) y **NAVEGACIÓN**
 
 **REGLAS DE ROUTING**:
 - Si mencionan "reserva", "reservar", "modificar reserva", "cancelar", "token" → reservas_agent
 - Si mencionan "menú", "platos", "comida", "precio", "recomendación" → menus_agent
 - Si mencionan "horario", "ubicación", "cómo llegar", "información general" → info_agent
+- **NAVEGACIÓN**: Si dicen "llévame", "ir a", "navegar", "quiero ver", "página de" → info_agent
 - Si la consulta es ambigua o general → info_agent (da bienvenida y explica servicios)
 - Puedes invocar múltiples agentes si la consulta requiere información de varios
 
@@ -141,6 +185,9 @@ Usuario: "Quiero hacer una reserva para mañana"
 Usuario: "¿Qué menú recomiendan y cuál es el horario?"
 → {"agents": ["menus_agent", "info_agent"], "reasoning": "Necesita info de menús y horarios"}
 
+Usuario: "Llévame a ver mis reservas"
+→ {"agents": ["info_agent"], "reasoning": "Solicitud de navegación a sección de reservas"}
+
 Usuario: "Hola"
 → {"agents": ["info_agent"], "reasoning": "Saludo inicial, dar bienvenida general"}
 
@@ -154,7 +201,22 @@ class AgentFactory:
     
     @staticmethod
     def create_reservas_agent(agent_id: str = "reservas_agent") -> AgentRunner:
-        """Crea el agente de reservas"""
+        """Crea el agente de reservas con contexto de fecha actual"""
+        from datetime import datetime
+        
+        # Obtener fecha y hora actual del sistema
+        now = datetime.now()
+        current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
+        current_year = now.strftime("%Y")
+        current_month = now.strftime("%m")
+        
+        # Inyectar fecha actual en el prompt
+        prompt_with_context = RESERVAS_AGENT_PROMPT.format(
+            current_datetime=current_datetime,
+            current_year=current_year,
+            current_month=current_month
+        )
+        
         # Tools relacionadas con reservas
         reservas_tools = [
             tool for tool in TOOLS_DEFINITIONS
@@ -175,7 +237,7 @@ class AgentFactory:
             model_name="gemini-2.5-flash",
             generation_config=GENERATION_CONFIG,
             safety_settings=SAFETY_SETTINGS,
-            system_instruction=RESERVAS_AGENT_PROMPT,
+            system_instruction=prompt_with_context,
             tools=[{"function_declarations": tools_for_gemini}]
         )
         
@@ -321,9 +383,17 @@ class RestauranteMultiAgentSystem:
                     user_message
                 )
                 
+                # Extraer acción de navegación si existe
+                response_text = result.get("response", "")
+                navigation_action = self._extract_navigation_action(response_text)
+                
+                logger.info(f"📝 Respuesta del agente: {response_text[:100]}...")
+                logger.info(f"🧭 Acción de navegación detectada: {navigation_action}")
+                
                 return {
                     "success": True,
-                    "response": result.get("response", ""),
+                    "response": response_text.replace(f"[NAVEGAR:{navigation_action}]", "").strip() if navigation_action else response_text,
+                    "navigation_action": navigation_action,
                     "agents_used": selected_agents,
                     "routing_reasoning": reasoning,
                     "session_id": session_id
@@ -339,10 +409,12 @@ class RestauranteMultiAgentSystem:
                 
                 # Combinar respuestas
                 combined_response = self._combine_responses(results, selected_agents)
+                navigation_action = self._extract_navigation_action(combined_response)
                 
                 return {
                     "success": True,
-                    "response": combined_response,
+                    "response": combined_response.replace(f"[NAVEGAR:{navigation_action}]", "").strip() if navigation_action else combined_response,
+                    "navigation_action": navigation_action,
                     "agents_used": selected_agents,
                     "routing_reasoning": reasoning,
                     "session_id": session_id
@@ -374,6 +446,17 @@ class RestauranteMultiAgentSystem:
             return "Lo siento, no pude procesar tu consulta en este momento."
         
         return "\n\n".join(combined)
+    
+    def _extract_navigation_action(self, response: str) -> Optional[str]:
+        """
+        Extrae la acción de navegación de la respuesta del agente
+        Busca patrones como [NAVEGAR:ver_reserva]
+        """
+        import re
+        match = re.search(r'\[NAVEGAR:([^\]]+)\]', response)
+        if match:
+            return match.group(1)
+        return None
     
     def reset_session(self, session_id: Optional[str] = None):
         """Reinicia una sesión (todos los agentes)"""

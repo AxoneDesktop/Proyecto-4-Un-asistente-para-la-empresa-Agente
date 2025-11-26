@@ -62,6 +62,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     session_id: Optional[str] = None
+    navigation_action: Optional[str] = None
 
 @app.on_event("startup")
 async def startup_event():
@@ -126,7 +127,8 @@ async def chat(request: ChatRequest):
         
         return ChatResponse(
             response=result.get("response", ""),
-            session_id=result.get("session_id")
+            session_id=result.get("session_id"),
+            navigation_action=result.get("navigation_action")
         )
         
     except HTTPException:
