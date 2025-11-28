@@ -1,98 +1,98 @@
-# 🤖 Capstone Project: Agente IA para Sistema de Reservas de Restaurante
+# 🤖 Capstone Project: AI Agent for Restaurant Reservation System
 
-**Autor:** Manuel Garrido Serrano  
-**Fecha:** Noviembre 2025  
-**Curso:** 5-Day Gen AI Intensive Course - Google & Kaggle
-
----
-
-## 📋 Índice
-
-1. [Resumen del Proyecto](#resumen-del-proyecto)
-2. [¿Qué es el Procesamiento del Lenguaje Natural?](#qué-es-el-procesamiento-del-lenguaje-natural)
-3. [Arquitectura del Sistema](#arquitectura-del-sistema)
-4. [Capacidades Implementadas](#capacidades-implementadas)
-5. [Detalles Técnicos](#detalles-técnicos)
-6. [Reflexión y Aprendizajes](#reflexión-y-aprendizajes)
-7. [Cómo Ejecutar el Proyecto](#cómo-ejecutar-el-proyecto)
+**Author:** Manuel Garrido Serrano  
+**Date:** November 2025  
+**Course:** 5-Day Gen AI Intensive Course - Google & Kaggle
 
 ---
 
-## 🎯 Resumen del Proyecto
+## 📋 Table of Contents
 
-He desarrollado un **asistente virtual inteligente** para un restaurante que permite a los clientes:
-
-- 📅 **Hacer reservas** mediante conversación natural
-- 🍽️ **Consultar menús** y recibir recomendaciones
-- 🔍 **Gestionar sus reservas** (consultar, modificar, cancelar)
-- ⭐ **Valorar su experiencia** gastronómica
-- ℹ️ **Obtener información** del restaurante (horarios, ubicación)
-
-El asistente entiende lo que el usuario quiere decir en lenguaje natural y ejecuta las acciones correspondientes, como si hablara con un empleado real del restaurante.
+1. [Project Summary](#project-summary)
+2. [What is Natural Language Processing?](#what-is-natural-language-processing)
+3. [System Architecture](#system-architecture)
+4. [Implemented Features](#implemented-features)
+5. [Technical Details](#technical-details)
+6. [Reflection & Learnings](#reflection--learnings)
+7. [How to Run the Project](#how-to-run-the-project)
 
 ---
 
-## 💬 ¿Qué es el Procesamiento del Lenguaje Natural?
+## 🎯 Project Summary
 
-### Explicación Simple
+I developed an **intelligent virtual assistant** for a restaurant that allows customers to:
 
-El **Procesamiento del Lenguaje Natural (NLP)** es la capacidad de un ordenador para entender el lenguaje humano. En mi proyecto, esto significa que el usuario puede escribir cosas como:
+- 📅 **Make reservations** through natural conversation
+- 🍽️ **Browse menus** and receive recommendations
+- 🔍 **Manage reservations** (query, modify, cancel)
+- ⭐ **Rate their experience**
+- ℹ️ **Get information** about the restaurant (hours, location)
 
-> "Quiero reservar mesa para 4 personas mañana a las 8 de la tarde"
+The assistant understands what the user means in natural language and executes the corresponding actions, as if talking to a real restaurant employee.
 
-Y el sistema entiende que:
-- **Acción:** Crear una reserva
-- **Personas:** 4
-- **Fecha:** Mañana
-- **Hora:** 20:00
+---
 
-### ¿Por qué es útil en este proyecto?
+## 💬 What is Natural Language Processing?
 
-| Sin NLP (Tradicional) | Con NLP (Mi Proyecto) |
-|----------------------|----------------------|
-| Formularios rígidos | Conversación natural |
-| El usuario se adapta al sistema | El sistema se adapta al usuario |
-| Menús y botones obligatorios | Escritura libre |
-| Experiencia fría | Experiencia cercana y humana |
+### Simple Explanation
 
-**Ejemplo real de mi sistema:**
+**Natural Language Processing (NLP)** is a computer's ability to understand human language. In my project, this means the user can write things like:
+
+> "I want to book a table for 4 people tomorrow at 8 PM"
+
+And the system understands:
+- **Action:** Create a reservation
+- **People:** 4
+- **Date:** Tomorrow
+- **Time:** 8:00 PM
+
+### Why is it useful in this project?
+
+| Without NLP (Traditional) | With NLP (My Project) |
+|---------------------------|----------------------|
+| Rigid forms | Natural conversation |
+| User adapts to system | System adapts to user |
+| Mandatory menus and buttons | Free writing |
+| Cold experience | Warm, human-like experience |
+
+**Real example from my system:**
 
 ```
-Usuario: "Hola, me gustaría saber qué menú me recomiendan"
+User: "Hi, I'd like to know what menu you recommend"
 
-Agente: "¡Hola! 😊 Te recomiendo nuestro Menú Degustación Premium, 
-        que tiene una valoración de 4.8/5 estrellas. Incluye..."
+Agent: "Hello! 😊 I recommend our Premium Tasting Menu, 
+        which has a 4.8/5 star rating. It includes..."
 ```
 
-El agente entiende que el usuario quiere una recomendación y automáticamente consulta cuál es el menú mejor valorado.
+The agent understands the user wants a recommendation and automatically queries which menu has the highest rating.
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## 🏗️ System Architecture
 
-### Diagrama General
+### General Diagram
 
 ```mermaid
 flowchart TB
-    subgraph Usuario
-        A[👤 Cliente Web]
+    subgraph User
+        A[👤 Web Client]
     end
     
     subgraph Frontend["Frontend (Angular)"]
         B[💬 Chat Component]
-        C[📄 Páginas Web]
+        C[📄 Web Pages]
     end
     
-    subgraph Agente["Agente IA (Python + FastAPI)"]
-        D[🎯 Orquestador]
-        E[📅 Agente Reservas]
-        F[🍽️ Agente Menús]
-        G[ℹ️ Agente Info]
+    subgraph Agent["AI Agent (Python + FastAPI)"]
+        D[🎯 Orchestrator]
+        E[📅 Reservations Agent]
+        F[🍽️ Menus Agent]
+        G[ℹ️ Info Agent]
     end
     
     subgraph Backend["Backend (Node.js)"]
-        H[🔌 API REST]
-        I[(🗄️ Base de Datos)]
+        H[🔌 REST API]
+        I[(🗄️ Database)]
     end
     
     subgraph Google
@@ -103,255 +103,259 @@ flowchart TB
     B --> C
     B <-->|HTTP| D
     D --> E & F & G
-    E & F & G <-->|Consultas| J
+    E & F & G <-->|Queries| J
     E & F <-->|MCP Tools| H
     H <--> I
 ```
 
-### Flujo de una Conversación
+### Conversation Flow
 
 ```mermaid
 sequenceDiagram
-    participant U as 👤 Usuario
+    participant U as 👤 User
     participant F as 💻 Frontend
-    participant O as 🎯 Orquestador
-    participant A as 🤖 Agente
+    participant O as 🎯 Orchestrator
+    participant A as 🤖 Agent
     participant G as 🧠 Gemini
     participant B as 🔌 Backend
     
-    U->>F: "Quiero reservar para 4 personas"
-    F->>O: Envía mensaje
-    O->>G: ¿Qué agente usar?
-    G-->>O: Agente de Reservas
-    O->>A: Procesa mensaje
-    A->>G: Genera respuesta
-    G-->>A: "Necesito más datos..."
-    A-->>F: Pide nombre, teléfono, email, fecha
-    F-->>U: Muestra pregunta
-    U->>F: Proporciona datos
-    F->>A: Datos completos
-    A->>B: crear_reserva()
-    B-->>A: Reserva creada + Token
-    A-->>F: Confirmación
-    F-->>U: "Reserva confirmada! Tu token es..."
+    U->>F: "I want to book for 4 people"
+    F->>O: Send message
+    O->>G: Which agent to use?
+    G-->>O: Reservations Agent
+    O->>A: Process message
+    A->>G: Generate response
+    G-->>A: "I need more data..."
+    A-->>F: Asks for name, phone, email, date
+    F-->>U: Shows question
+    U->>F: Provides data
+    F->>A: Complete data
+    A->>B: create_reservation()
+    B-->>A: Reservation created + Token
+    A-->>F: Confirmation
+    F-->>U: "Reservation confirmed! Your token is..."
 ```
 
 ---
 
-## 🚀 Capacidades Implementadas
+## 🚀 Implemented Features
 
-He implementado **3 capacidades principales** del curso de AI Agents:
+I implemented **3 key features** from the AI Agents course:
 
-### 1. 🎭 Orquestación Multi-Agente
+### 1. 🎭 Multi-Agent Orchestration
 
-**¿Qué es?** Un sistema donde varios agentes especializados trabajan juntos, coordinados por un "jefe" (orquestador).
+**What is it?** A system where several specialized agents work together, coordinated by a "boss" (orchestrator).
 
-**¿Cómo lo implementé?**
+**How did I implement it?**
 
 ```
                     ┌─────────────────┐
-                    │   ORQUESTADOR   │
-                    │  Analiza y      │
-                    │  decide quién   │
-                    │  responde       │
+                    │   ORCHESTRATOR  │
+                    │  Analyzes and   │
+                    │  decides who    │
+                    │  responds       │
                     └────────┬────────┘
                              │
             ┌────────────────┼────────────────┐
             ▼                ▼                ▼
     ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-    │ 📅 RESERVAS   │ │ 🍽️ MENÚS      │ │ ℹ️ INFO       │
+    │ 📅 RESERVATIONS│ │ 🍽️ MENUS      │ │ ℹ️ INFO       │
     │               │ │               │ │               │
-    │ - Crear       │ │ - Listar      │ │ - Horarios    │
-    │ - Modificar   │ │ - Recomendar  │ │ - Ubicación   │
-    │ - Cancelar    │ │               │ │ - Navegación  │
-    │ - Consultar   │ │               │ │               │
+    │ - Create      │ │ - List        │ │ - Hours       │
+    │ - Modify      │ │ - Recommend   │ │ - Location    │
+    │ - Cancel      │ │               │ │ - Navigation  │
+    │ - Query       │ │               │ │               │
     └───────────────┘ └───────────────┘ └───────────────┘
 ```
 
-**Ejemplo:** Si el usuario pregunta "¿Qué menú tienen y a qué hora abren?", el orquestador envía la pregunta a DOS agentes (Menús + Info) que responden en paralelo.
+**Example:** If the user asks "What menu do you have and what time do you open?", the orchestrator sends the query to TWO agents (Menus + Info) that respond in parallel.
 
 ### 2. 🔧 Function Calling (Tools/MCP)
 
-**¿Qué es?** La capacidad del agente de ejecutar acciones reales, no solo responder con texto.
+**What is it?** The agent's ability to execute real actions, not just respond with text.
 
-**¿Cómo lo implementé?**
+**How did I implement it?**
 
-El agente tiene acceso a estas herramientas:
+The agent has access to these tools:
 
-| Herramienta | Descripción |
-|-------------|-------------|
-| `crear_reserva` | Crea una reserva en la base de datos |
-| `modificar_fecha_reserva` | Cambia la fecha de una reserva |
-| `cancelar_reserva` | Cancela una reserva existente |
-| `consultar_reserva` | Obtiene información de una reserva |
-| `get_menu_mas_valorado` | Obtiene el menú mejor puntuado |
-| `listar_menus_disponibles` | Lista todos los menús |
+| Tool | Description |
+|------|-------------|
+| `crear_reserva` | Creates a reservation in the database |
+| `modificar_fecha_reserva` | Changes the date of a reservation |
+| `cancelar_reserva` | Cancels an existing reservation |
+| `consultar_reserva` | Gets information about a reservation |
+| `get_menu_mas_valorado` | Gets the highest-rated menu |
+| `listar_menus_disponibles` | Lists all menus |
 
-**Ejemplo de flujo:**
-
-```
-Usuario: "Cancela mi reserva, mi token es ABC123"
-
-Agente internamente:
-1. Detecta intención: cancelar reserva
-2. Extrae token: ABC123
-3. Llama función: cancelar_reserva(token="ABC123")
-4. Backend ejecuta la cancelación
-5. Agente responde: "Tu reserva ha sido cancelada correctamente"
-```
-
-### 3. 💾 Memoria Conversacional
-
-**¿Qué es?** El agente recuerda lo que se ha hablado antes en la misma conversación.
-
-**¿Cómo lo implementé?**
-
-- Cada agente mantiene su `chat_history`
-- El historial se usa como contexto en cada mensaje
-- Las sesiones se identifican con `session_id`
-
-**Ejemplo:**
+**Flow example:**
 
 ```
-Usuario: "Quiero reservar para mañana"
-Agente: "¡Perfecto! ¿Para cuántas personas?"
+User: "Cancel my reservation, my token is ABC123"
 
-Usuario: "Para 4"
-Agente: "Muy bien, 4 personas para mañana. ¿A qué hora?"
-        (Recuerda que ya dijiste "mañana")
+Agent internally:
+1. Detects intent: cancel reservation
+2. Extracts token: ABC123
+3. Calls function: cancelar_reserva(token="ABC123")
+4. Backend executes the cancellation
+5. Agent responds: "Your reservation has been cancelled successfully"
+```
 
-Usuario: "A las 8"
-Agente: "Entendido. ¿Me das tu nombre, teléfono y email?"
-        (Recuerda: mañana, 4 personas, 8 PM)
+### 3. 💾 Conversational Memory
+
+**What is it?** The agent remembers what has been discussed earlier in the same conversation.
+
+**How did I implement it?**
+
+- Each agent maintains its own `chat_history`
+- History is used as context in each message
+- Sessions are identified with `session_id`
+
+**Example:**
+
+```
+User: "I want to book for tomorrow"
+Agent: "Perfect! For how many people?"
+
+User: "For 4"
+Agent: "Alright, 4 people for tomorrow. What time?"
+        (Remembers you already said "tomorrow")
+
+User: "At 8"
+Agent: "Got it. Can you give me your name, phone and email?"
+        (Remembers: tomorrow, 4 people, 8 PM)
 ```
 
 ---
 
-## 🔧 Detalles Técnicos
+## 🔧 Technical Details
 
-### Tecnologías Utilizadas
+### Technologies Used
 
-| Componente | Tecnología | Versión |
-|------------|------------|---------|
-| **Agente IA** | Python + FastAPI | 3.11 |
-| **Modelo LLM** | Google Gemini Flash | 2.5 |
+| Component | Technology | Version |
+|-----------|------------|---------|
+| **AI Agent** | Python + FastAPI | 3.11 |
+| **LLM Model** | Google Gemini Flash | 2.5 |
 | **Frontend** | Angular | 17+ |
 | **Backend** | Node.js + Express | 20+ |
-| **Base de Datos** | MySQL | 8.0 |
+| **Database** | MySQL | 8.0 |
 
-### Modelo de Lenguaje
+### Language Model
 
-Uso **Gemini 2.5 Flash** por estas razones:
+I use **Gemini 2.5 Flash** for these reasons:
 
-- ⚡ **Rápido**: Respuestas en menos de 1 segundo
-- 💰 **Económico**: Menor coste que otros modelos
-- 🔧 **Function Calling nativo**: Soporta herramientas directamente
-- 🇪🇸 **Buen español**: Entiende y responde bien en castellano
+- ⚡ **Fast**: Responses in less than 1 second
+- 💰 **Economical**: Lower cost than other models
+- 🔧 **Native Function Calling**: Supports tools directly
+- 🇪🇸 **Good Spanish**: Understands and responds well in Spanish
 
-### Configuración del Modelo
+### Model Configuration
 
 ```python
-# Para agentes especializados
+# For specialized agents
 GENERATION_CONFIG = {
-    "temperature": 0.7,      # Balance creatividad/coherencia
+    "temperature": 0.7,      # Balance creativity/coherence
     "top_p": 0.95,
     "max_output_tokens": 2048
 }
 
-# Para el orquestador
+# For the orchestrator
 ORCHESTRATOR_CONFIG = {
-    "temperature": 0.3,      # Más determinístico para routing
+    "temperature": 0.3,      # More deterministic for routing
     "max_output_tokens": 512
 }
 ```
 
-### Estructura del Proyecto
+### Project Structure
 
 ```
-📁 Proyecto Completo
+📁 Complete Project
 │
-├── 📁 Agente (Python)
-│   ├── main.py              # API FastAPI
-│   ├── multi_agents.py      # Definición de agentes
-│   ├── agent_runner.py      # Sistema de ejecución
-│   └── mcp_tools.py         # Herramientas MCP
+├── 📁 Agent (Python)
+│   ├── src/
+│   │   ├── main.py              # FastAPI API
+│   │   ├── multi_agents.py      # Agent definitions
+│   │   ├── agent_runner.py      # Execution system
+│   │   └── mcp_tools.py         # MCP Tools
+│   ├── tests/                   # Unit tests
+│   ├── docs/                    # Documentation
+│   └── run.py                   # Entry point
 │
 ├── 📁 Backend (Node.js)
 │   ├── src/
-│   │   ├── routes/          # Endpoints API
-│   │   └── services/        # Lógica de negocio
-│   └── database/            # Esquema SQL
+│   │   ├── routes/              # API endpoints
+│   │   └── services/            # Business logic
+│   └── database/                # SQL schema
 │
 └── 📁 Frontend (Angular)
     └── src/app/
-        ├── pages/           # Páginas de la app
-        └── services/        # Servicios HTTP
+        ├── pages/               # App pages
+        └── services/            # HTTP services
 ```
 
 ---
 
-## 💭 Reflexión y Aprendizajes
+## 💭 Reflection & Learnings
 
-### ¿Qué aprendí del curso?
+### What I learned from the course?
 
-#### Día 1-2: Fundamentos de LLMs
-Aprendí cómo funcionan los modelos de lenguaje y cómo usar la API de Gemini. Esto me permitió crear agentes que "entienden" el lenguaje natural.
+#### Days 1-2: LLM Fundamentals
+I learned how language models work and how to use the Gemini API. This allowed me to create agents that "understand" natural language.
 
-#### Día 3: Agentes y Function Calling
-Descubrí que los LLMs pueden hacer más que generar texto: pueden ejecutar acciones. Implementé las MCP Tools para que mi agente realmente cree reservas en la base de datos.
+#### Day 3: Agents and Function Calling
+I discovered that LLMs can do more than generate text: they can execute actions. I implemented MCP Tools so my agent actually creates reservations in the database.
 
-#### Día 4: Arquitectura Multi-Agente
-Aprendí a dividir un problema complejo en agentes especializados. En lugar de un agente gigante que hace todo, tengo varios expertos que colaboran.
+#### Day 4: Multi-Agent Architecture
+I learned to divide a complex problem into specialized agents. Instead of one giant agent that does everything, I have several experts that collaborate.
 
-#### Día 5: Evaluación y Mejoras
-Entendí la importancia de probar y medir el rendimiento de los agentes.
+#### Day 5: Evaluation and Improvements
+I understood the importance of testing and measuring agent performance.
 
-### Desafíos que enfrenté
+### Challenges I faced
 
-1. **Interpretación de fechas**: El usuario dice "mañana" o "el viernes" y el agente debe convertirlo a formato `YYYY-MM-DDTHH:mm`. Solucioné inyectando la fecha actual en el prompt.
+1. **Date interpretation**: The user says "tomorrow" or "Friday" and the agent must convert it to `YYYY-MM-DDTHH:mm` format. I solved this by injecting the current date into the prompt.
 
-2. **Coordinación de agentes**: A veces dos agentes querían responder a la misma pregunta. El orquestador resuelve esto decidiendo quién es el más adecuado.
+2. **Agent coordination**: Sometimes two agents wanted to respond to the same question. The orchestrator solves this by deciding who is most appropriate.
 
-3. **Validación de datos**: El agente debe verificar que el usuario proporcione todos los datos necesarios antes de crear una reserva. Implementé prompts específicos que guían la conversación.
+3. **Data validation**: The agent must verify that the user provides all necessary data before creating a reservation. I implemented specific prompts that guide the conversation.
 
-### ¿Qué mejoraría en el futuro?
+### What would I improve in the future?
 
-- 🔴 **Persistencia de sesiones**: Guardar conversaciones en Redis para que sobrevivan reinicios
-- 🔴 **Evaluación automática**: Medir calidad de respuestas con métricas
-- 🔴 **Más agentes**: Añadir agente de pagos, agente de eventos especiales
-- 🔴 **Voice UI**: Permitir hablar en lugar de escribir
+- 🔴 **Session persistence**: Store conversations in Redis to survive restarts
+- 🔴 **Automated evaluation**: Measure response quality with metrics
+- 🔴 **More agents**: Add payment agent, special events agent
+- 🔴 **Voice UI**: Allow speaking instead of typing
 
 ---
 
-## 🚀 Cómo Ejecutar el Proyecto
+## 🚀 How to Run the Project
 
-### Requisitos Previos
+### Prerequisites
 
 - Python 3.9+
 - Node.js 18+
 - MySQL 8.0
-- API Key de Google Gemini
+- Google Gemini API Key
 
 ### 1. Backend (Node.js)
 
 ```bash
 cd Proyecto-4-Un-asistente-para-la-empresa-backend
 npm install
-# Configurar .env con credenciales de BD
+# Configure .env with DB credentials
 npm start
-# Servidor en http://localhost:3000
+# Server at http://localhost:3000
 ```
 
-### 2. Agente IA (Python)
+### 2. AI Agent (Python)
 
 ```bash
 cd Proyecto-4-Un-asistente-para-la-empresa-Agente
 python -m venv venv
 venv\Scripts\activate  # Windows
 pip install -r requirements.txt
-# Configurar .env con GEMINI_API_KEY
-python main.py
-# Servidor en http://localhost:8000
+# Configure .env with GEMINI_API_KEY
+python run.py
+# Server at http://localhost:8000
 ```
 
 ### 3. Frontend (Angular)
@@ -360,19 +364,19 @@ python main.py
 cd Proyecto-4-Un-asistente-para-la-empresa-frontend/cliente-web
 npm install
 ng serve
-# Aplicación en http://localhost:4200
+# Application at http://localhost:4200
 ```
 
-### Probar el Sistema
+### Test the System
 
-1. Abre http://localhost:4200
-2. Haz clic en el botón de chat (esquina inferior derecha)
-3. Escribe: "Hola, quiero hacer una reserva"
-4. ¡Sigue la conversación!
+1. Open http://localhost:4200
+2. Click the chat button (bottom right corner)
+3. Type: "Hello, I want to make a reservation"
+4. Follow the conversation!
 
 ---
 
-## 📚 Referencias
+## 📚 References
 
 - [Google AI Studio](https://makersuite.google.com/)
 - [Gemini API Documentation](https://ai.google.dev/docs)
@@ -382,11 +386,11 @@ ng serve
 
 ---
 
-## 📝 Licencia
+## 📝 License
 
-Este proyecto fue desarrollado como parte del curso de 5 días de AI Agents de Google y Kaggle.
+This project was developed as part of Google and Kaggle's 5-Day AI Agents course.
 
-**Repositorios:**
-- Agente: https://github.com/AxoneDesktop/Proyecto-4-Un-asistente-para-la-empresa-Agente
+**Repositories:**
+- Agent: https://github.com/AxoneDesktop/Proyecto-4-Un-asistente-para-la-empresa-Agente
 - Backend: https://github.com/AxoneDesktop/Proyecto-4-Un-asistente-para-la-empresa-backend
 - Frontend: https://github.com/AxoneDesktop/Proyecto-4-Un-asistente-para-la-empresa-frontend
